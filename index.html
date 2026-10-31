@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>いろいたクイズ｜特別支援教材開発研究所</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbf7ef; --ink:#3b3833; --sub:#8b8476; --line:#e6dfcf; --card:#ffffff;
+  --accent:#e8743b; --accent-d:#c95d26; --ok:#41ad6b;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+body{
+  font-family:'Zen Maru Gothic','BIZ UDPGothic',sans-serif;
+  background:var(--bg);color:var(--ink);
+  height:100vh;height:100dvh;
+  touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
+}
+button{font-family:inherit;color:inherit;border:none;background:none;cursor:pointer;touch-action:manipulation}
+.screen{position:absolute;inset:0;display:none;flex-direction:column}
+.screen.on{display:flex}
+
+/* ===== 設定画面 ===== */
+#setup{align-items:center;justify-content:center;padding:16px;overflow-y:auto}
+.setupBox{width:100%;max-width:620px;display:flex;flex-direction:column;align-items:center;gap:26px;margin:auto}
+h1{font-size:clamp(28px,5.5vw,42px);font-weight:700;display:flex;align-items:center;gap:12px;letter-spacing:.06em}
+h1 svg{width:1.3em;height:1.3em}
+.group{width:100%;background:var(--card);border-radius:20px;padding:16px 18px 20px;box-shadow:0 2px 0 var(--line)}
+.gl{font-size:20px;font-weight:700;color:var(--sub);margin-bottom:12px;text-align:center;letter-spacing:.1em}
+.chips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.chip{
+  min-width:64px;min-height:64px;border-radius:16px;border:3px solid var(--line);background:#fff;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:6px 10px;
+  font-size:28px;font-weight:700;transition:transform .1s;
+}
+.chip:active{transform:scale(.95)}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:#fff1e6;box-shadow:0 0 0 3px #fbd9c3}
+.chip.col{font-size:16px;min-width:78px}
+.chip.col svg{width:40px;height:40px}
+.chip.col svg.wide{width:64px;height:32px;margin:4px 0}
+.big{
+  min-width:220px;min-height:72px;border-radius:999px;background:var(--accent);color:#fff;
+  font-size:28px;font-weight:700;letter-spacing:.15em;box-shadow:0 5px 0 var(--accent-d);
+}
+.big:active{transform:translateY(3px);box-shadow:0 2px 0 var(--accent-d)}
+.credit{font-size:12px;color:var(--sub);text-align:center}
+
+/* ===== 問題画面 ===== */
+.bar{display:flex;align-items:center;gap:10px;padding:10px 12px 0}
+.bar .spacer{flex:1}
+.btn{
+  min-height:48px;min-width:48px;padding:0 18px;border-radius:14px;font-size:20px;font-weight:700;
+  background:#fff;border:2px solid var(--line);white-space:nowrap;
+}
+@media (max-width:480px){.btn{font-size:17px;padding:0 12px}.btn.primary{padding:0 18px}}
+.btn:active{transform:scale(.96)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 4px 0 var(--accent-d);padding:0 26px}
+.btn.primary:active{transform:translateY(2px);box-shadow:0 2px 0 var(--accent-d)}
+#stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;gap:16px;padding:12px}
+#stage.col{flex-direction:column-reverse}
+#workCol{display:flex;flex-direction:column;align-items:center;gap:16px}
+#work{display:block;touch-action:none;filter:drop-shadow(0 2px 0 var(--line))}
+#tray{
+  display:flex;flex-wrap:wrap;align-content:flex-start;justify-content:center;
+  background:#efe8da;border-radius:16px;touch-action:none;
+}
+#tray svg{display:block;touch-action:none;cursor:grab;overflow:visible}
+#modelCol{min-width:100px;background:var(--card);border-radius:20px;display:flex;flex-direction:column;align-items:center;box-shadow:0 2px 0 var(--line)}
+.mlabel{white-space:nowrap;height:28px;line-height:30px;margin-bottom:6px;font-size:18px;font-weight:700;color:var(--sub);letter-spacing:.15em}
+#model{display:block;overflow:visible}
+.pc{cursor:grab}
+.lift{opacity:.25}
+.spin{animation:spin .18s ease-out;transform-box:fill-box;transform-origin:center}
+@keyframes spin{from{transform:rotate(-90deg)}to{transform:rotate(0deg)}}
+#ghost{position:fixed;left:0;top:0;pointer-events:none;display:none;z-index:50;filter:drop-shadow(0 6px 6px rgba(0,0,0,.25))}
+#ghost svg{display:block;width:100%;height:100%;overflow:visible}
+
+#toast{
+  position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:60;
+  background:#fff;border:3px solid var(--accent);border-radius:999px;padding:10px 26px;
+  font-size:22px;font-weight:700;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .2s;
+}
+#toast.on{opacity:1}
+
+#clear{position:absolute;inset:0;display:none;align-items:flex-end;justify-content:center;padding:20px;background:rgba(251,247,239,.35);z-index:40}
+#clear.on{display:flex}
+.clearCard{
+  background:#fff;border-radius:24px;padding:18px 26px;display:flex;align-items:center;gap:20px;
+  box-shadow:0 4px 0 var(--line),0 10px 30px rgba(0,0,0,.12);
+}
+.clearCard svg{width:72px;height:72px;flex:none}
+.clearCard .msg{font-size:30px;font-weight:700;letter-spacing:.08em}
+@media (max-width:480px){
+  #toast{width:max-content;max-width:calc(100vw - 24px);padding:10px 14px;font-size:clamp(15px,4vw,20px);white-space:normal;text-align:center;line-height:1.4}
+  .clearCard{max-width:calc(100vw - 24px);gap:10px;padding:14px 10px}
+  .clearCard svg{width:48px;height:48px}
+  .clearCard .msg{font-size:clamp(19px,5vw,24px);white-space:nowrap}
+  #nextBtn{min-width:76px;padding:0 12px;font-size:17px}
+}
+</style>
+</head>
+<body>
+
+<!-- 設定画面 -->
+<section id="setup" class="screen on">
+  <div class="setupBox">
+    <h1>
+      <svg viewBox="0 0 2 1" aria-hidden="true" style="width:2.2em">
+        <polygon points="0,1 0,0 1,0" fill="#e9584f" stroke="rgba(0,0,0,.35)" stroke-width=".04" stroke-linejoin="round"/>
+        <polygon points="1,0 1,1 0,1" fill="#3f80d8" stroke="rgba(0,0,0,.35)" stroke-width=".04" stroke-linejoin="round"/>
+        <polygon points="1,1 1,0 2,1" fill="#f3c531" stroke="rgba(0,0,0,.35)" stroke-width=".04" stroke-linejoin="round"/>
+      </svg>
+      いろいた クイズ
+    </h1>
+    <div class="group">
+      <div class="gl">まいすう</div>
+      <div class="chips" id="countChips"></div>
+    </div>
+    <div class="group">
+      <div class="gl">いろ</div>
+      <div class="chips" id="colorChips"></div>
+    </div>
+    <button id="startBtn" class="big">スタート</button>
+    <div class="credit">特別支援教材開発研究所</div>
+  </div>
+</section>
+
+<!-- 問題画面 -->
+<section id="game" class="screen">
+  <header class="bar">
+    <button id="backBtn" class="btn" aria-label="もどる">‹ もどる</button>
+    <div class="spacer"></div>
+    <button id="resetBtn" class="btn">やりなおし</button>
+    <button id="checkBtn" class="btn primary">できた</button>
+  </header>
+  <main id="stage">
+    <div id="workCol">
+      <svg id="work"></svg>
+      <div id="tray"></div>
+    </div>
+    <div id="modelCol">
+      <div class="mlabel">おてほん</div>
+      <svg id="model"></svg>
+    </div>
+  </main>
+  <div id="clear">
+    <div class="clearCard">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r="42" fill="none" stroke="#e9584f" stroke-width="7"/>
+        <circle cx="50" cy="50" r="27" fill="none" stroke="#e9584f" stroke-width="7"/>
+      </svg>
+      <div class="msg">できたね！</div>
+      <button id="nextBtn" class="btn primary">つぎへ</button>
+    </div>
+  </div>
+</section>
+
+<div id="ghost"><svg viewBox="0 0 1 1"></svg></div>
+<div id="toast"></div>
+
+<script>
+'use strict';
+/* ================= 定数 ================= */
+const COLOR_HEX = { red:'#e9584f', blue:'#3f80d8', yellow:'#f3c531', green:'#41ad6b' };
+const COLOR_KEYS = ['red','blue','yellow','green'];
+const COLOR_NAME = { red:'あか', blue:'あお', yellow:'きいろ', green:'みどり', multi:'いろいろ' };
+const COUNTS = [2,3,4,5,6,8];
+// 四分割（上・右・下・左）の向き
+const DIRS = [[0,-1],[1,0],[0,1],[-1,0]];
+const STROKE = 'rgba(0,0,0,.38)';
+
+/* ================= 純粋関数 =================
+   色板1枚 = 正方形のマスを対角線で半分にした直角二等辺三角形。
+   k = 直角の位置（0:左上 1:右上 2:右下 3:左下）。k+1 で時計回りに90°回転。
+   マスを両対角線で4つに分けた「四分割」(0上 1右 2下 3左) のうち、k は {k, k-1} を占める。 */
+function quarters(k){ return [k, (k+3)%4]; }
+function compatible(a,b){ return (a+2)%4 === b; }           // 同じマスに2枚入れる条件
+function triPoints(c,r,k){
+  const C = [[c,r],[c+1,r],[c+1,r+1],[c,r+1]];
+  return [C[(k+3)%4], C[k], C[(k+1)%4]].map(p => p.join(',')).join(' ');
+}
+function maxSide(n){ return n<=2 ? 2 : n<=5 ? 3 : 4; }
+function gridSize(n){ const m = maxSide(n); return { cols:m+2, rows:m+1 }; }
+function canPut(list,c,r,k){
+  for (const p of list) if (p.c===c && p.r===r && !compatible(p.k,k)) return false;
+  return true;
+}
+// 辺をまるごと共有している数（斜辺・直角をはさむ辺）
+function sharedEdges(list,c,r,k){
+  let s = 0;
+  for (const p of list) if (p.c===c && p.r===r && compatible(p.k,k)) s++;
+  for (const q of quarters(k)){
+    const nc = c+DIRS[q][0], nr = r+DIRS[q][1], oq = (q+2)%4;
+    for (const p of list) if (p.c===nc && p.r===nr && quarters(p.k).includes(oq)) s++;
+  }
+  return s;
+}
+function bbox(list){
+  if (!list.length) return { x:0, y:0, w:0, h:0 };
+  let x0=Infinity, y0=Infinity, x1=-Infinity, y1=-Infinity;
+  for (const p of list){ x0=Math.min(x0,p.c); y0=Math.min(y0,p.r); x1=Math.max(x1,p.c); y1=Math.max(y1,p.r); }
+  return { x:x0, y:y0, w:x1-x0+1, h:y1-y0+1 };
+}
+function normalize(list){
+  const b = bbox(list);
+  return list.map(p => Object.assign({}, p, { c:p.c-b.x, r:p.r-b.y }));
+}
+// お手本の形をつくる：辺どうしがぴったりつながる形だけ
+function genShape(n, rnd){
+  rnd = rnd || Math.random;
+  const ms = maxSide(n), maxArea = n*2+1;
+  for (let t=0; t<300; t++){
+    const list = [{ c:0, r:0, k:Math.floor(rnd()*4) }];
+    while (list.length < n){
+      const seen = new Set(), cands = [];
+      const add = (c,r,k) => {
+        const key = c+','+r+','+k;
+        if (seen.has(key)) return; seen.add(key);
+        if (list.some(p => p.c===c && p.r===r && p.k===k)) return;
+        if (!canPut(list,c,r,k)) return;
+        const b = bbox(list.concat([{c,r,k}]));
+        if (b.w>ms || b.h>ms || b.w*b.h>maxArea) return;
+        const s = sharedEdges(list,c,r,k);
+        cands.push({ c, r, k, w: s>=3 ? 20 : s===2 ? 6 : 1 });
+      };
+      for (const p of list){
+        add(p.c, p.r, (p.k+2)%4);
+        for (const q of quarters(p.k)){
+          const nc = p.c+DIRS[q][0], nr = p.r+DIRS[q][1], oq = (q+2)%4;
+          add(nc, nr, oq); add(nc, nr, (oq+1)%4);
+        }
+      }
+      if (!cands.length) break;
+      let x = rnd() * cands.reduce((a,b)=>a+b.w, 0), pick = cands[cands.length-1];
+      for (const cd of cands){ x -= cd.w; if (x < 0){ pick = cd; break; } }
+      list.push({ c:pick.c, r:pick.r, k:pick.k });
+    }
+    if (list.length === n) return normalize(list);
+  }
+  return null;
+}
+function assignColors(list, mode, rnd){
+  rnd = rnd || Math.random;
+  if (mode !== 'multi'){ list.forEach(p => p.color = mode); return list; }
+  list.forEach(p => p.color = COLOR_KEYS[Math.floor(rnd()*COLOR_KEYS.length)]);
+  if (list.length >= 2 && list.every(p => p.color === list[0].color)){
+    const others = COLOR_KEYS.filter(c => c !== list[0].color);
+    list[Math.floor(rnd()*list.length)].color = others[Math.floor(rnd()*others.length)];
+  }
+  return list;
+}
+// 形と色の「見た目」を比べるための署名（平行移動は同じとみなす）
+function signature(list){
+  if (!list.length) return '';
+  const b = bbox(list), arr = [];
+  for (const p of list) for (const q of quarters(p.k)) arr.push((p.c-b.x)+','+(p.r-b.y)+','+q+','+(p.color||''));
+  return arr.sort().join('|');
+}
+function shuffle(a, rnd){
+  rnd = rnd || Math.random;
+  for (let i=a.length-1; i>0; i--){ const j = Math.floor(rnd()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; }
+  return a;
+}
+
+/* ================= 状態 ================= */
+const $ = id => document.getElementById(id);
+const settings = { n:2, color:'red' };
+try {
+  const s = JSON.parse(localStorage.getItem('tkk-iroita') || 'null');
+  if (s && COUNTS.includes(s.n) && (s.color==='multi' || COLOR_KEYS.includes(s.color))){ settings.n = s.n; settings.color = s.color; }
+} catch(e){}
+let model = [], pieces = [], grid = { cols:5, rows:4 }, lastSig = '', S = 60, trayRows = 1;
+let drag = null, spinId = -1, toastTimer = 0;
+
+function polyHTML(c,r,k,color,extra){
+  return '<polygon '+(extra||'')+' points="'+triPoints(c,r,k)+'" fill="'+COLOR_HEX[color]+
+    '" stroke="'+STROKE+'" stroke-width=".04" stroke-linejoin="round"/>';
+}
+
+/* ================= 設定画面 ================= */
+function buildSetup(){
+  const cc = $('countChips'); cc.innerHTML = '';
+  COUNTS.forEach(n => {
+    const b = document.createElement('button');
+    b.className = 'chip'; b.textContent = n;
+    b.setAttribute('aria-pressed', settings.n === n);
+    b.setAttribute('aria-label', n+'まい');
+    b.onclick = () => { settings.n = n; buildSetup(); };
+    cc.appendChild(b);
+  });
+  const col = $('colorChips'); col.innerHTML = '';
+  COLOR_KEYS.concat(['multi']).forEach(key => {
+    const b = document.createElement('button');
+    b.className = 'chip col';
+    b.setAttribute('aria-pressed', settings.color === key);
+    const icon = key === 'multi'
+      ? '<svg class="wide" viewBox="-.05 -.05 2.1 1.1">'+polyHTML(0,0,3,'red')+polyHTML(0,0,1,'blue')+polyHTML(1,0,0,'yellow')+polyHTML(1,0,2,'green')+'</svg>'
+      : '<svg viewBox="-.05 -.05 1.1 1.1">'+polyHTML(0,0,3,key)+'</svg>';
+    b.innerHTML = icon + '<span>'+COLOR_NAME[key]+'</span>';
+    b.onclick = () => { settings.color = key; buildSetup(); };
+    col.appendChild(b);
+  });
+}
+
+function startGame(){
+  try { localStorage.setItem('tkk-iroita', JSON.stringify(settings)); } catch(e){}
+  grid = gridSize(settings.n);
+  lastSig = '';
+  $('setup').classList.remove('on');
+  $('game').classList.add('on');
+  newProblem();
+}
+
+function newProblem(){
+  let shape, sig, tries = 0;
+  do {
+    shape = assignColors(genShape(settings.n), settings.color);
+    sig = signature(shape); tries++;
+  } while (sig === lastSig && tries < 30);
+  lastSig = sig; model = shape;
+  pieces = shuffle(shape.map(p => ({ color:p.color }))).map((p,i) => ({ id:i, color:p.color, k:3, c:0, r:0, on:false }));
+  $('clear').classList.remove('on');
+  layout(); render();
+}
+
+/* ================= レイアウト ================= */
+function layout(){
+  const st = $('stage');
+  const W = st.clientWidth, H = st.clientHeight;
+  const { cols, rows } = grid;
+  const b = bbox(model), mw = Math.max(b.w,1), mh = Math.max(b.h,1);
+  const perRow = Math.max(1, Math.floor((cols-0.2)/0.92));
+  trayRows = Math.ceil(settings.n / perRow);
+  const P = 24, G = 16, L = 34;
+  const workH = rows + trayRows*0.92 + 0.3;
+  // 横ならび（お手本が右）
+  let sRow = Math.min((W-P-G)/(cols+mw+0.8), (H-P-G)/workH, (H-P-L)/(mh+0.8));
+  if ((mw+0.8)*sRow < 100) sRow = Math.min(sRow, (W-P-G-100)/cols);  // おてほん欄の最小幅
+  // たてならび（せまい画面用：お手本が上）
+  const sCol = Math.min((W-P)/cols, (W-P)/(mw+0.8), (H-P-G*2-L)/(workH+mh+0.8));
+  const useRow = sRow >= sCol*0.8;
+  st.classList.toggle('col', !useRow);
+  S = Math.max(20, Math.floor(Math.min(useRow ? sRow : sCol, 120)));
+
+  const work = $('work');
+  work.setAttribute('viewBox', '0 0 '+cols+' '+rows);
+  work.style.width = cols*S+'px'; work.style.height = rows*S+'px';
+  const tray = $('tray');
+  tray.style.width = cols*S+'px';
+  tray.style.height = (trayRows*0.92*S + 0.3*S)+'px';
+  tray.style.padding = (0.15*S)+'px';
+  tray.style.gap = (0.12*S)+'px';
+  const mc = $('modelCol');
+  mc.style.padding = '0 '+(0.4*S)+'px '+(0.4*S)+'px';
+  const m = $('model');
+  m.setAttribute('viewBox', '0 0 '+mw+' '+mh);
+  m.style.width = mw*S+'px'; m.style.height = mh*S+'px';
+  const gh = $('ghost');
+  gh.style.width = S+'px'; gh.style.height = S+'px';
+}
+
+/* ================= 描画 ================= */
+function render(){
+  const { cols, rows } = grid;
+  // ならべるところ
+  let h = '<rect x="0" y="0" width="'+cols+'" height="'+rows+'" rx=".14" fill="#fff"/>';
+  for (let i=1; i<cols; i++) h += '<line x1="'+i+'" y1="0" x2="'+i+'" y2="'+rows+'" stroke="#ebe4d5" stroke-width=".025"/>';
+  for (let j=1; j<rows; j++) h += '<line x1="0" y1="'+j+'" x2="'+cols+'" y2="'+j+'" stroke="#ebe4d5" stroke-width=".025"/>';
+  for (const p of pieces) if (p.on){
+    h += '<g class="'+(spinId===p.id?'spin':'')+'">'+polyHTML(p.c,p.r,p.k,p.color,'class="pc" data-id="'+p.id+'"')+'</g>';
+  }
+  $('work').innerHTML = h;
+  // トレイ
+  const t = 0.8*S;
+  let th = '';
+  for (const p of pieces) if (!p.on){
+    th += '<svg data-id="'+p.id+'" viewBox="-.05 -.05 1.1 1.1" width="'+t+'" height="'+t+'">'+
+      '<g class="'+(spinId===p.id?'spin':'')+'">'+polyHTML(0,0,p.k,p.color)+'</g></svg>';
+  }
+  $('tray').innerHTML = th;
+  // おてほん
+  const b = bbox(model), mw = Math.max(b.w,1), mh = Math.max(b.h,1);
+  let mhtml = '';
+  for (let i=1; i<mw; i++) mhtml += '<line x1="'+i+'" y1="0" x2="'+i+'" y2="'+mh+'" stroke="#f1ebdf" stroke-width=".025"/>';
+  for (let j=1; j<mh; j++) mhtml += '<line x1="0" y1="'+j+'" x2="'+mw+'" y2="'+j+'" stroke="#f1ebdf" stroke-width=".025"/>';
+  for (const p of model) mhtml += polyHTML(p.c,p.r,p.k,p.color);
+  $('model').innerHTML = mhtml;
+  spinId = -1;
+}
+
+/* ================= 操作 ================= */
+function othersIn(id,c,r){ return pieces.filter(q => q.on && q.id!==id && q.c===c && q.r===r); }
+
+function tryPlace(id,c,r){
+  const p = pieces[id];
+  if (c<0 || r<0 || c>=grid.cols || r>=grid.rows) return false;
+  if (!othersIn(id,c,r).every(q => compatible(q.k,p.k))) return false;
+  p.c = c; p.r = r; p.on = true;
+  return true;
+}
+
+function rotatePiece(id){
+  const p = pieces[id];
+  if (!p.on){ p.k = (p.k+1)%4; spinId = id; render(); return; }
+  const others = othersIn(id,p.c,p.r);
+  for (let step=1; step<=3; step++){
+    const nk = (p.k+step)%4;
+    if (others.every(q => compatible(q.k,nk))){ p.k = nk; spinId = step===1 ? id : -1; break; }
+  }
+  render();
+}
+
+function startDrag(e, el, src){
+  if (drag || $('clear').classList.contains('on')) return;
+  if (e.button > 0) return;
+  e.preventDefault();
+  const id = +el.dataset.id, p = pieces[id];
+  let rect;
+  if (src === 'grid'){
+    const g = $('work').getBoundingClientRect();
+    rect = { left:g.left+p.c*S, top:g.top+p.r*S, width:S, height:S };
+  } else {
+    const r0 = el.getBoundingClientRect();
+    rect = { left:r0.left, top:r0.top, width:r0.width||1, height:r0.height||1 };
+  }
+  const cl = v => Math.min(1, Math.max(0, v));
+  drag = { id, el, pid:e.pointerId, x0:e.clientX, y0:e.clientY,
+    fx:cl((e.clientX-rect.left)/rect.width), fy:cl((e.clientY-rect.top)/rect.height), moved:false };
+  window.addEventListener('pointermove', onMove, { passive:false });
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onCancel);
+}
+function stopListen(){
+  window.removeEventListener('pointermove', onMove);
+  window.removeEventListener('pointerup', onUp);
+  window.removeEventListener('pointercancel', onCancel);
+}
+function moveGhost(x,y){
+  $('ghost').style.transform = 'translate('+(x-drag.fx*S)+'px,'+(y-drag.fy*S)+'px)';
+}
+function onMove(e){
+  if (!drag || e.pointerId !== drag.pid) return;
+  e.preventDefault();
+  if (!drag.moved){
+    if (Math.hypot(e.clientX-drag.x0, e.clientY-drag.y0) < 8) return;
+    drag.moved = true;
+    const p = pieces[drag.id];
+    $('ghost').querySelector('svg').innerHTML = polyHTML(0,0,p.k,p.color);
+    $('ghost').style.display = 'block';
+    drag.el.classList.add('lift');
+  }
+  moveGhost(e.clientX, e.clientY);
+}
+function onUp(e){
+  if (!drag || e.pointerId !== drag.pid) return;
+  const d = drag; drag = null; stopListen();
+  if (!d.moved){ rotatePiece(d.id); return; }
+  $('ghost').style.display = 'none';
+  const g = $('work').getBoundingClientRect();
+  const gx = (e.clientX - d.fx*S + S/2 - g.left)/S;
+  const gy = (e.clientY - d.fy*S + S/2 - g.top)/S;
+  if (gx>=0 && gy>=0 && gx<grid.cols && gy<grid.rows){
+    tryPlace(d.id, Math.floor(gx), Math.floor(gy));   // 重なるときは もとの場所へ
+  } else {
+    pieces[d.id].on = false;                          // そとに出したら トレイへ
+  }
+  render();
+}
+function onCancel(e){
+  if (!drag || e.pointerId !== drag.pid) return;
+  drag = null; stopListen();
+  $('ghost').style.display = 'none';
+  render();
+}
+
+function check(){
+  if ($('clear').classList.contains('on')) return;
+  const placed = pieces.filter(p => p.on);
+  if (placed.length && signature(placed) === signature(model)){
+    $('toast').classList.remove('on');
+    $('clear').classList.add('on');
+  } else {
+    showToast(placed.length ? 'おてほんと よく くらべて みよう' : 'いろいたを ならべよう');
+  }
+}
+function showToast(msg){
+  const t = $('toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), 1800);
+}
+function resetPieces(){
+  pieces.forEach(p => { p.on = false; p.k = 3; });
+  render();
+}
+
+/* ================= 初期化 ================= */
+buildSetup();
+$('startBtn').onclick = startGame;
+$('backBtn').onclick = () => { $('game').classList.remove('on'); $('setup').classList.add('on'); buildSetup(); };
+$('resetBtn').onclick = resetPieces;
+$('checkBtn').onclick = check;
+$('nextBtn').onclick = newProblem;
+$('work').addEventListener('pointerdown', e => {
+  const el = e.target.closest('[data-id]'); if (el) startDrag(e, el, 'grid');
+});
+$('tray').addEventListener('pointerdown', e => {
+  const el = e.target.closest('[data-id]'); if (el) startDrag(e, el, 'tray');
+});
+document.addEventListener('gesturestart', e => e.preventDefault());
+document.addEventListener('contextmenu', e => e.preventDefault());
+let rzT = 0;
+window.addEventListener('resize', () => {
+  clearTimeout(rzT);
+  rzT = setTimeout(() => { if ($('game').classList.contains('on')){ layout(); render(); } }, 100);
+});
+</script>
+</body>
+</html>
